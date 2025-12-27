@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetic Retinopathy Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        :root {
+            --primary-color: #4a6bff;
+            --primary-hover: #3a5bef;
+            --error-color: #ff4d4d;
+            --success-color: #28a745;
+            --text-color: #2c3e50;
+            --light-gray: #f8f9fa;
+            --border-color: #e0e0e0;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        .file-name {
+            display: none;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: rgba(74, 107, 255, 0.1);
+            border-radius: 8px;
+            color: var(--primary-color);
+            font-size: 0.9rem;
+        }
+
+        .file-name.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .upload-area {
+            transition: all 0.3s ease;
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary-color) !important;
+            background-color: rgba(74, 107, 255, 0.05) !important;
+        }
+
+        .result-card {
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden relative">
+            <div class="h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+            
+            <div class="p-8">
+                <div class="flex justify-between items-center mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">Diabetic Retinopathy Detection</h1>
+                    <a href="{{ url_for('logout') }}" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg">
+                        Logout
+                    </a>
+                </div>
+
+                <div class="upload-area bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 p-8 text-center transition-all duration-300 hover:border-blue-500 hover:bg-blue-50">
+                    <form method="POST" enctype="multipart/form-data" class="space-y-4">
+                        <div class="relative inline-block">
+                            <label for="file-upload" class="cursor-pointer">
+                                <div class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg">
+                                    Choose Image
+                                </div>
+                                <input id="file-upload" type="file" name="file" accept="image/*" required class="hidden" onchange="showFileName(this)">
+                            </label>
+                        </div>
+                        <div id="file-name" class="file-name"></div>
+                        <button type="submit" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg">
+                            Analyze Image
+                        </button>
+                    </form>
+                </div>
+
+                {% if error %}
+                <div class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg animate__animated animate__fadeIn">
+                    {{ error }}
+                </div>
+                {% endif %}
+
+                {% if prediction %}
+                <div class="result-card mt-8 bg-gray-50 rounded-xl p-8">
+                    <div class="text-center">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Analysis Result</h2>
+                        <div class="inline-flex items-center justify-center space-x-2 bg-green-500 text-white rounded-full px-6 py-3 mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="font-medium">{{ prediction }}</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-center mt-6">
+                        <img src="{{ url_for('uploaded_file', filename=filename) }}" 
+                             alt="Uploaded Image" 
+                             class="rounded-lg shadow-lg max-w-full h-auto transform transition-transform duration-300 hover:scale-105">
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showFileName(input) {
+            const fileName = input.files[0]?.name;
+            const fileNameElement = document.getElementById('file-name');
+            
+            if (fileName) {
+                fileNameElement.textContent = `Selected: ${fileName}`;
+                fileNameElement.classList.add('show');
+            } else {
+                fileNameElement.classList.remove('show');
+            }
+        }
+
+        // Drag and drop functionality
+        const uploadArea = document.querySelector('.upload-area');
+        const fileInput = document.getElementById('file-upload');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            uploadArea.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            uploadArea.classList.remove('dragover');
+        }
+
+        uploadArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            showFileName(fileInput);
+        }
+    </script>
+</body>
+</html>
